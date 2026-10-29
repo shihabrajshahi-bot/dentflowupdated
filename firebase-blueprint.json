@@ -1,0 +1,432 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Authenticated user profile and role assignment for DentFlow staff and administrators.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email", "description": "Staff email address" },
+        "displayName": { "type": "string", "description": "Full name of staff member" },
+        "role": { "type": "string", "enum": ["Owner", "Dentist", "Assistant", "Receptionist", "Accountant"], "description": "Assigned staff role" },
+        "clinicId": { "type": "string", "description": "Associated clinic ID" },
+        "phone": { "type": "string", "description": "Contact telephone number" },
+        "specialty": { "type": "string", "description": "Dental specialization if dentist" },
+        "licenseNumber": { "type": "string", "description": "Dental medical board license number" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account registration timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Profile update timestamp" }
+      },
+      "required": ["uid", "email", "displayName", "role", "clinicId"]
+    },
+    "Clinic": {
+      "title": "Clinic",
+      "description": "Dental clinic organizational unit and practice configuration.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Dental practice name" },
+        "brandName": { "type": "string", "description": "Brand system name, e.g. DentFlow" },
+        "slogan": { "type": "string", "description": "Clinic marketing slogan or subtitle" },
+        "badgeText": { "type": "string", "description": "Header badge/tagline text, e.g. CLINICAL SUITE" },
+        "logoUrl": { "type": "string", "description": "Custom logo image data URL or image web path" },
+        "email": { "type": "string", "format": "email", "description": "Clinic general contact email" },
+        "phone": { "type": "string", "description": "Clinic office phone" },
+        "address": { "type": "string", "description": "Physical address of practice" },
+        "currency": { "type": "string", "description": "Display currency code such as BDT or USD" },
+        "currencySymbol": { "type": "string", "description": "Currency symbol, e.g. ৳" },
+        "defaultAppointmentDuration": { "type": "number", "description": "Default slot duration in minutes" },
+        "taxRate": { "type": "number", "description": "Default sales / VAT tax percentage" },
+        "invoicePrefix": { "type": "string", "description": "Prefix code for itemized invoices, e.g. DENT" },
+        "ownerId": { "type": "string", "description": "UID of clinic owner/creator" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Establishment record creation" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last configuration update" }
+      },
+      "required": ["name", "email", "ownerId"]
+    },
+    "Patient": {
+      "title": "Patient",
+      "description": "Patient medical record, demographics, health alerts, and dental history.",
+      "type": "object",
+      "properties": {
+        "clinicId": { "type": "string", "description": "Owning clinic identifier" },
+        "patientIdNumber": { "type": "string", "description": "Human-readable clinic chart number (e.g., PT-1002)" },
+        "fullName": { "type": "string", "description": "Patient full name" },
+        "dateOfBirth": { "type": "string", "description": "Birth date YYYY-MM-DD" },
+        "gender": { "type": "string", "enum": ["Male", "Female", "Other"], "description": "Biological sex/gender" },
+        "phone": { "type": "string", "description": "Primary telephone" },
+        "email": { "type": "string", "description": "Patient email address" },
+        "address": { "type": "string", "description": "Residential address" },
+        "emergencyContactName": { "type": "string", "description": "Emergency contact person" },
+        "emergencyContactPhone": { "type": "string", "description": "Emergency contact phone" },
+        "medicalHistory": { "type": "string", "description": "General medical history, conditions, surgeries" },
+        "allergies": { "type": "string", "description": "Allergies to drugs, latex, penicillin, anesthetics" },
+        "currentMedications": { "type": "string", "description": "Current systemic medications list" },
+        "medicalAlerts": { "type": "string", "description": "High alert flags like Cardiac, Bleeding disorder, Diabetes, Hypertension" },
+        "dentalHistory": { "type": "string", "description": "Previous dental procedures, phobias, habits" },
+        "consentGiven": { "type": "boolean", "description": "Treatment consent acknowledgment flag" },
+        "notes": { "type": "string", "description": "General administrative patient notes" },
+        "createdBy": { "type": "string", "description": "UID of creator staff" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Registration timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last updated timestamp" }
+      },
+      "required": ["clinicId", "patientIdNumber", "fullName", "phone"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Patient visit booking, status tracking, clinician assignment, and room scheduling.",
+      "type": "object",
+      "properties": {
+        "clinicId": { "type": "string", "description": "Clinic identifier" },
+        "patientId": { "type": "string", "description": "Patient record ID" },
+        "patientName": { "type": "string", "description": "Cached patient name for fast calendar render" },
+        "patientPhone": { "type": "string", "description": "Patient phone number" },
+        "dentistId": { "type": "string", "description": "Assigned clinician UID" },
+        "dentistName": { "type": "string", "description": "Assigned clinician display name" },
+        "date": { "type": "string", "description": "Appointment date YYYY-MM-DD" },
+        "startTime": { "type": "string", "description": "Start time HH:mm in 24h format" },
+        "endTime": { "type": "string", "description": "End time HH:mm in 24h format" },
+        "durationMinutes": { "type": "number", "description": "Duration in minutes" },
+        "type": { "type": "string", "description": "Consultation, Cleaning, Root Canal, Extraction, Ortho, etc." },
+        "reason": { "type": "string", "description": "Patient presenting reason for visit" },
+        "status": { "type": "string", "enum": ["Scheduled", "Confirmed", "Checked In", "In Progress", "Completed", "Cancelled", "No Show"], "description": "Status pipeline" },
+        "room": { "type": "string", "description": "Operatory or dental chair number" },
+        "notes": { "type": "string", "description": "Internal appointment notes" },
+        "createdBy": { "type": "string", "description": "Staff UID creating booking" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["clinicId", "patientId", "dentistId", "date", "startTime", "endTime", "status"]
+    },
+    "DentalChart": {
+      "title": "DentalChart",
+      "description": "Odontogram tooth-by-tooth record based on FDI notation system.",
+      "type": "object",
+      "properties": {
+        "clinicId": { "type": "string", "description": "Clinic identifier" },
+        "patientId": { "type": "string", "description": "Target patient document ID" },
+        "toothNumber": { "type": "number", "description": "FDI tooth number (e.g., 18-48 for adult, 55-85 for pediatric)" },
+        "toothType": { "type": "string", "enum": ["permanent", "primary"], "description": "Permanent adult or primary deciduous tooth" },
+        "surface": { "type": "string", "description": "Affected surface: M, O, D, B, L, General" },
+        "condition": { "type": "string", "enum": ["Healthy", "Caries", "Filling", "Crown", "Missing", "Implant", "Root Canal", "Extraction", "Periodontal", "Other"], "description": "Diagnostic condition" },
+        "procedureStatus": { "type": "string", "enum": ["existing", "planned", "completed"], "description": "Procedure lifecycle stage" },
+        "notes": { "type": "string", "description": "Clinical annotations for this tooth" },
+        "examinedBy": { "type": "string", "description": "Dentist staff name or UID" },
+        "examinedDate": { "type": "string", "description": "Examination date YYYY-MM-DD" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["clinicId", "patientId", "toothNumber", "condition", "procedureStatus"]
+    },
+    "TreatmentPlan": {
+      "title": "TreatmentPlan",
+      "description": "Structured multi-stage dental treatment proposal with estimated costing and approval status.",
+      "type": "object",
+      "properties": {
+        "clinicId": { "type": "string", "description": "Clinic identifier" },
+        "patientId": { "type": "string", "description": "Target patient ID" },
+        "patientName": { "type": "string", "description": "Cached patient name" },
+        "title": { "type": "string", "description": "Treatment plan title or diagnosis summary" },
+        "affectedTeeth": { "type": "string", "description": "Comma-separated list of FDI tooth numbers" },
+        "procedures": { "type": "string", "description": "Detailed procedures descriptions or items" },
+        "priority": { "type": "string", "enum": ["Low", "Medium", "High", "Urgent"], "description": "Clinical urgency priority" },
+        "estimatedCost": { "type": "number", "description": "Estimated cost before final billing" },
+        "phases": { "type": "string", "description": "Phase descriptions (e.g. Phase 1: Hygiene, Phase 2: Restorative)" },
+        "status": { "type": "string", "enum": ["Planned", "Accepted", "In Progress", "Completed", "Declined", "Cancelled"], "description": "Plan status" },
+        "notes": { "type": "string", "description": "Clinical and patient communication notes" },
+        "dentistId": { "type": "string", "description": "Clinician author UID" },
+        "dentistName": { "type": "string", "description": "Clinician author display name" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["clinicId", "patientId", "title", "status", "estimatedCost"]
+    },
+    "ClinicalNote": {
+      "title": "ClinicalNote",
+      "description": "Structured clinical encounter consultation note and procedure log.",
+      "type": "object",
+      "properties": {
+        "clinicId": { "type": "string", "description": "Clinic identifier" },
+        "patientId": { "type": "string", "description": "Target patient ID" },
+        "date": { "type": "string", "description": "Consultation date YYYY-MM-DD" },
+        "presentingComplaint": { "type": "string", "description": "Chief patient complaint" },
+        "examinationFindings": { "type": "string", "description": "Intraoral and extraoral exam findings" },
+        "diagnosis": { "type": "string", "description": "Clinician definitive or differential diagnosis" },
+        "treatmentPerformed": { "type": "string", "description": "Detailed surgical or restorative treatment rendered" },
+        "clinicalRecommendations": { "type": "string", "description": "Oral hygiene and care recommendations" },
+        "followUpInstructions": { "type": "string", "description": "Follow-up timeline and recall guidance" },
+        "dentistId": { "type": "string", "description": "Clinician author UID" },
+        "dentistName": { "type": "string", "description": "Clinician author display name" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["clinicId", "patientId", "date", "diagnosis", "treatmentPerformed"]
+    },
+    "Prescription": {
+      "title": "Prescription",
+      "description": "Medical prescription issued by an authorized dental surgeon.",
+      "type": "object",
+      "properties": {
+        "clinicId": { "type": "string", "description": "Clinic identifier" },
+        "patientId": { "type": "string", "description": "Target patient ID" },
+        "patientName": { "type": "string", "description": "Cached patient name" },
+        "patientAge": { "type": "string", "description": "Patient age at prescription" },
+        "date": { "type": "string", "description": "Prescription date YYYY-MM-DD" },
+        "medicationsSummary": { "type": "string", "description": "Summary of prescribed drugs, doses, and schedules" },
+        "allergyWarnings": { "type": "string", "description": "Allergy alert flags checked at issue time" },
+        "notes": { "type": "string", "description": "Dietary or cautionary instructions" },
+        "dentistId": { "type": "string", "description": "Prescribing clinician UID" },
+        "dentistName": { "type": "string", "description": "Prescribing clinician display name" },
+        "licenseNumber": { "type": "string", "description": "Dentist BMDC or regulatory registration number" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["clinicId", "patientId", "date", "dentistName"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Itemized billing statement for clinical services, treatments, and supplies.",
+      "type": "object",
+      "properties": {
+        "clinicId": { "type": "string", "description": "Clinic identifier" },
+        "patientId": { "type": "string", "description": "Target patient ID" },
+        "patientName": { "type": "string", "description": "Cached patient name" },
+        "invoiceNumber": { "type": "string", "description": "Unique clinic invoice code e.g. INV-2026-001" },
+        "issueDate": { "type": "string", "description": "Issue date YYYY-MM-DD" },
+        "dueDate": { "type": "string", "description": "Due date YYYY-MM-DD" },
+        "subtotal": { "type": "number", "description": "Gross total before discounts" },
+        "discount": { "type": "number", "description": "Authorized concession or discount" },
+        "tax": { "type": "number", "description": "Calculated tax" },
+        "total": { "type": "number", "description": "Net payable amount" },
+        "paidAmount": { "type": "number", "description": "Total payments credited" },
+        "balance": { "type": "number", "description": "Outstanding balance due" },
+        "status": { "type": "string", "enum": ["Draft", "Issued", "Partially Paid", "Paid", "Overdue", "Cancelled"], "description": "Invoice status" },
+        "notes": { "type": "string", "description": "Payment instructions and footer note" },
+        "createdBy": { "type": "string", "description": "Staff UID creating invoice" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["clinicId", "patientId", "invoiceNumber", "total", "status"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Financial transaction ledger entry recording partial or full payment receipt.",
+      "type": "object",
+      "properties": {
+        "clinicId": { "type": "string", "description": "Clinic identifier" },
+        "invoiceId": { "type": "string", "description": "Associated invoice ID" },
+        "patientId": { "type": "string", "description": "Patient ID" },
+        "patientName": { "type": "string", "description": "Patient name" },
+        "amount": { "type": "number", "description": "Amount received" },
+        "paymentMethod": { "type": "string", "enum": ["Cash", "Card", "Bank Transfer", "Mobile Financial Service"], "description": "Method of payment" },
+        "referenceNumber": { "type": "string", "description": "Cheque, Transaction ID, or receipt reference" },
+        "date": { "type": "string", "description": "Transaction date YYYY-MM-DD" },
+        "receivedBy": { "type": "string", "description": "Staff name recording payment" },
+        "notes": { "type": "string", "description": "Payment comments" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Receipt timestamp" }
+      },
+      "required": ["clinicId", "invoiceId", "patientId", "amount", "paymentMethod", "date"]
+    },
+    "Service": {
+      "title": "Service",
+      "description": "Standard dental clinical procedure, pricing catalog, and duration.",
+      "type": "object",
+      "properties": {
+        "clinicId": { "type": "string", "description": "Clinic identifier" },
+        "name": { "type": "string", "description": "Clinical procedure name" },
+        "code": { "type": "string", "description": "Procedure code (e.g. CDT D0120, D1110)" },
+        "category": { "type": "string", "description": "Diagnostic, Preventative, Restorative, Endodontic, Periodontic, Oral Surgery, Orthodontic" },
+        "description": { "type": "string", "description": "Procedure details" },
+        "price": { "type": "number", "description": "Standard charge in clinic currency" },
+        "durationMinutes": { "type": "number", "description": "Typical chair time in minutes" },
+        "isActive": { "type": "boolean", "description": "Availability flag" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["clinicId", "name", "price"]
+    },
+    "InventoryItem": {
+      "title": "InventoryItem",
+      "description": "Dental clinic stock, composite, anesthetics, burs, gloves, and dental materials.",
+      "type": "object",
+      "properties": {
+        "clinicId": { "type": "string", "description": "Clinic identifier" },
+        "name": { "type": "string", "description": "Material or consumable item name" },
+        "category": { "type": "string", "description": "Anesthetics, Restorative, PPE, Sterilization, Impression, Instruments, Pharmaceuticals" },
+        "quantity": { "type": "number", "description": "Stock count on hand" },
+        "unit": { "type": "string", "description": "Cartridge, Box, Bottle, Pack, Syringe, Piece" },
+        "purchaseCost": { "type": "number", "description": "Cost per unit" },
+        "supplier": { "type": "string", "description": "Distributor or vendor name" },
+        "batchNumber": { "type": "string", "description": "Batch / lot number" },
+        "expiryDate": { "type": "string", "description": "Expiration date YYYY-MM-DD" },
+        "reorderThreshold": { "type": "number", "description": "Minimum safe threshold for low-stock warning" },
+        "status": { "type": "string", "enum": ["In Stock", "Low Stock", "Out of Stock", "Expired"], "description": "Computed stock alert state" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["clinicId", "name", "quantity", "reorderThreshold"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Healthcare compliance audit trail tracking security-sensitive and clinical events.",
+      "type": "object",
+      "properties": {
+        "clinicId": { "type": "string", "description": "Clinic identifier" },
+        "action": { "type": "string", "description": "Create, Update, Delete, Export, Sign In" },
+        "module": { "type": "string", "description": "Patient, DentalChart, TreatmentPlan, Prescription, Billing, Settings" },
+        "recordId": { "type": "string", "description": "Target resource ID" },
+        "userId": { "type": "string", "description": "Actor UID" },
+        "userName": { "type": "string", "description": "Actor display name" },
+        "userRole": { "type": "string", "description": "Actor role" },
+        "details": { "type": "string", "description": "Event description and details" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": ["clinicId", "action", "module", "userId"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Clinic practice expenditure, overhead, laboratory fees, and facility costs.",
+      "type": "object",
+      "properties": {
+        "clinicId": { "type": "string", "description": "Clinic identifier" },
+        "title": { "type": "string", "description": "Expense item description" },
+        "category": { "type": "string", "description": "Expense classification category" },
+        "amount": { "type": "number", "description": "Monetary expenditure amount" },
+        "date": { "type": "string", "description": "Expenditure date YYYY-MM-DD" },
+        "paymentMethod": { "type": "string", "description": "Payment channel used" },
+        "referenceNumber": { "type": "string", "description": "Receipt or transaction voucher reference" },
+        "notes": { "type": "string", "description": "Internal notes" },
+        "recordedBy": { "type": "string", "description": "Staff name recording expense" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp" }
+      },
+      "required": ["clinicId", "title", "amount", "date", "category"]
+    },
+    "StaffMember": {
+      "title": "StaffMember",
+      "description": "Clinic staff member roster record, role assignment, license, and credentials managed by Owner.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Document ID" },
+        "uid": { "type": "string", "description": "Authentication UID or linked user account" },
+        "name": { "type": "string", "description": "Staff member full name" },
+        "email": { "type": "string", "format": "email", "description": "Official clinic email address" },
+        "role": { "type": "string", "enum": ["Owner", "Dentist", "Assistant", "Receptionist", "Cashier"], "description": "Assigned access control role" },
+        "title": { "type": "string", "description": "Professional or operational job title" },
+        "specialty": { "type": "string", "description": "Clinical specialty if dentist or surgeon" },
+        "licenseNumber": { "type": "string", "description": "Dental council / BMDC medical registration number" },
+        "phone": { "type": "string", "description": "Contact telephone" },
+        "status": { "type": "string", "enum": ["active", "suspended", "invited"], "description": "Staff employment and access status" },
+        "initialPassword": { "type": "string", "description": "Generated temporary credential key" },
+        "createdBy": { "type": "string", "description": "Owner UID who created the account" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["name", "email", "role", "status"]
+    },
+    "StaffInvitation": {
+      "title": "StaffInvitation",
+      "description": "Pending staff member registration invitation dispatched by Clinic Owner.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Invitation ID" },
+        "clinicId": { "type": "string", "description": "Clinic identifier" },
+        "email": { "type": "string", "format": "email", "description": "Invited staff email address" },
+        "name": { "type": "string", "description": "Invited staff name" },
+        "role": { "type": "string", "enum": ["Owner", "Dentist", "Assistant", "Receptionist", "Cashier"], "description": "Target role to be assigned" },
+        "inviteToken": { "type": "string", "description": "Secure random invitation token" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "expired", "revoked"], "description": "Invitation status" },
+        "invitedBy": { "type": "string", "description": "Owner UID who issued the invitation" },
+        "expiresAt": { "type": "string", "format": "date-time", "description": "Expiration timestamp" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["clinicId", "email", "role", "status", "inviteToken"]
+    },
+    "PracticeRole": {
+      "title": "PracticeRole",
+      "description": "Custom clinical or administrative role definition configured by Clinic Owner.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Role ID" },
+        "name": { "type": "string", "description": "Role title, e.g. Surgeon or Dental Assistant" },
+        "category": { "type": "string", "enum": ["Clinical", "Front Desk", "Financial", "Support", "Administrative"], "description": "Role category classification" },
+        "description": { "type": "string", "description": "Scope of practice and operational duties" },
+        "isSystemRole": { "type": "boolean", "description": "Whether this is a permanent built-in role" },
+        "permissions": { "type": "array", "description": "Baseline dashboard module permissions" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["name", "category", "permissions"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Staff profile and role assignment"
+    },
+    "/clinics/{clinicId}/custom_roles/{roleId}": {
+      "schema": { "$ref": "#/entities/PracticeRole" },
+      "description": "Custom practice roles created by the Clinic Owner"
+    },
+    "/clinics/{clinicId}/deleted_system_roles/{roleId}": {
+      "schema": { "$ref": "#/entities/PracticeRole" },
+      "description": "Deleted or hidden system roles tracking"
+    },
+    "/clinics/{clinicId}/staff/{staffId}": {
+      "schema": { "$ref": "#/entities/StaffMember" },
+      "description": "Clinic staff roster and role permissions (restricted to Owner for creation/deletion)"
+    },
+    "/clinics/{clinicId}/staff_invitations/{invitationId}": {
+      "schema": { "$ref": "#/entities/StaffInvitation" },
+      "description": "Pending staff member email invitations (restricted to Owner)"
+    },
+    "/clinics/{clinicId}": {
+      "schema": { "$ref": "#/entities/Clinic" },
+      "description": "Clinic practice details and settings"
+    },
+    "/clinics/{clinicId}/patients/{patientId}": {
+      "schema": { "$ref": "#/entities/Patient" },
+      "description": "Patient demographics and health records"
+    },
+    "/clinics/{clinicId}/appointments/{appointmentId}": {
+      "schema": { "$ref": "#/entities/Appointment" },
+      "description": "Clinic schedule and booking records"
+    },
+    "/clinics/{clinicId}/dental_charts/{chartId}": {
+      "schema": { "$ref": "#/entities/DentalChart" },
+      "description": "Odontogram tooth-by-tooth records"
+    },
+    "/clinics/{clinicId}/treatment_plans/{planId}": {
+      "schema": { "$ref": "#/entities/TreatmentPlan" },
+      "description": "Patient treatment plans and procedure sequencing"
+    },
+    "/clinics/{clinicId}/clinical_notes/{noteId}": {
+      "schema": { "$ref": "#/entities/ClinicalNote" },
+      "description": "Clinical encounter notes and findings"
+    },
+    "/clinics/{clinicId}/prescriptions/{prescriptionId}": {
+      "schema": { "$ref": "#/entities/Prescription" },
+      "description": "Medical prescriptions generated by dentists"
+    },
+    "/clinics/{clinicId}/invoices/{invoiceId}": {
+      "schema": { "$ref": "#/entities/Invoice" },
+      "description": "Itemized billing statements"
+    },
+    "/clinics/{clinicId}/payments/{paymentId}": {
+      "schema": { "$ref": "#/entities/Payment" },
+      "description": "Payment transactions"
+    },
+    "/clinics/{clinicId}/expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/Expense" },
+      "description": "Practice operational expenses and lab fees"
+    },
+    "/clinics/{clinicId}/services/{serviceId}": {
+      "schema": { "$ref": "#/entities/Service" },
+      "description": "Dental clinic procedure catalog"
+    },
+    "/clinics/{clinicId}/inventory/{itemId}": {
+      "schema": { "$ref": "#/entities/InventoryItem" },
+      "description": "Clinic materials and consumable inventory"
+    },
+    "/clinics/{clinicId}/audit_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Compliance audit log records"
+    }
+  }
+}

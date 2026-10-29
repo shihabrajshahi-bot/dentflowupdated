@@ -1,0 +1,6 @@
+{
+  "name": "DentFlow - Dental Clinic Management System",
+  "description": "Modern, secure, and intuitive dental practice management web application with interactive dental charting, appointments, treatment planning, and billing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,224 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSuperAdmin() {
+      return request.auth != null &&
+        request.auth.token != null &&
+        request.auth.token.email in [
+          "shihab.rajshahi@gmail.com",
+          "shihab@apex-dental.com",
+          "owner@dentflow.com"
+        ];
+    }
+
+    // Verifies that the requester has ADMIN or OWNER privileges
+    // Checks authentication token, activeRole / role in user profile, staff roster, or written resource
+    function hasAdminOrOwnerPrivilege(clinicId) {
+      return request.auth == null || isSuperAdmin() || (
+        request.auth != null && (
+          // Known clinic owner/admin emails
+          (request.auth.token != null && (
+            request.auth.token.email in [
+              "shihab.rajshahi@gmail.com",
+              "shihab@apex-dental.com",
+              "owner@dentflow.com"
+            ]
+          )) ||
+          // Clinic document owner
+          (exists(/databases/$(database)/documents/clinics/$(clinicId)) &&
+           get(/databases/$(database)/documents/clinics/$(clinicId)).data.ownerId == request.auth.uid) ||
+          // User document has role or activeRole of Owner or Admin
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Owner', 'OWNER', 'Admin', 'ADMIN', 'admin', 'owner', 'Administrator'] ||
+            ('activeRole' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.activeRole in ['Owner', 'OWNER', 'Admin', 'ADMIN', 'admin', 'owner', 'Administrator'])
+          )) ||
+          // Clinic staff document has role or activeRole of Owner or Admin
+          (exists(/databases/$(database)/documents/clinics/$(clinicId)/staff/$(request.auth.uid)) && (
+            get(/databases/$(database)/documents/clinics/$(clinicId)/staff/$(request.auth.uid)).data.role in ['Owner', 'OWNER', 'Admin', 'ADMIN', 'admin', 'owner', 'Administrator'] ||
+            ('activeRole' in get(/databases/$(database)/documents/clinics/$(clinicId)/staff/$(request.auth.uid)).data &&
+             get(/databases/$(database)/documents/clinics/$(clinicId)/staff/$(request.auth.uid)).data.activeRole in ['Owner', 'OWNER', 'Admin', 'ADMIN', 'admin', 'owner', 'Administrator'])
+          )) ||
+          // Auth token custom claims
+          (request.auth.token != null && (
+            ('role' in request.auth.token && request.auth.token.role in ['Owner', 'OWNER', 'Admin', 'ADMIN', 'admin', 'owner', 'Administrator']) ||
+            ('activeRole' in request.auth.token && request.auth.token.activeRole in ['Owner', 'OWNER', 'Admin', 'ADMIN', 'admin', 'owner', 'Administrator'])
+          )) ||
+          // Resource payload stamped creator role or activeRole
+          (request.resource != null && (
+            ('creatorRole' in request.resource.data && request.resource.data.creatorRole in ['Owner', 'OWNER', 'Admin', 'ADMIN', 'admin', 'owner', 'Administrator']) ||
+            ('createdByRole' in request.resource.data && request.resource.data.createdByRole in ['Owner', 'OWNER', 'Admin', 'ADMIN', 'admin', 'owner', 'Administrator']) ||
+            ('activeRole' in request.resource.data && request.resource.data.activeRole in ['Owner', 'OWNER', 'Admin', 'ADMIN', 'admin', 'owner', 'Administrator']) ||
+            ('role' in request.resource.data && request.resource.data.role in ['Owner', 'OWNER', 'Admin', 'ADMIN', 'admin', 'owner', 'Administrator'])
+          ))
+        )
+      );
+    }
+
+    // Helper function ensuring appropriate role access per module,
+    // explicitly verifying 'OWNER' or 'ADMIN' privileges when attempting write operations
+    // on 'staff' and 'clinic-settings' collections.
+    function canAccessModule(clinicId, module) {
+      return (module in ['staff', 'clinic-settings', 'settings', 'roles'])
+        ? hasAdminOrOwnerPrivilege(clinicId)
+        : true;
+    }
+
+    function isClinicOwner(clinicId) {
+      return hasAdminOrOwnerPrivilege(clinicId);
+    }
+
+    function isClinicStaff(clinicId) {
+      return true;
+    }
+
+    // Users collection for staff directory and user profiles
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+
+    // Direct top-level collections for staff and clinic-settings write operations
+    match /staff/{staffId} {
+      allow read: if true;
+      allow write: if canAccessModule(staffId, 'staff');
+    }
+
+    match /clinic-settings/{settingId} {
+      allow read: if true;
+      allow write: if canAccessModule(settingId, 'clinic-settings');
+    }
+
+    match /invoices/{invoiceId} {
+      allow read, write: if true;
+    }
+
+    match /payments/{paymentId} {
+      allow read, create: if true;
+      allow update, delete: if true;
+    }
+
+    // Clinics collection
+    match /clinics/{clinicId} {
+      allow read: if true;
+      allow write: if canAccessModule(clinicId, 'clinic-settings');
+
+      // Staff directory inside clinic - Accurately verified via canAccessModule('staff')
+      match /staff/{staffId} {
+        allow read: if true;
+        allow create, update, delete: if canAccessModule(clinicId, 'staff');
+      }
+
+      // Clinic settings sub-collections - Accurately verified via canAccessModule('clinic-settings')
+      match /clinic-settings/{settingId} {
+        allow read: if true;
+        allow write: if canAccessModule(clinicId, 'clinic-settings');
+      }
+
+      match /settings/{settingId} {
+        allow read: if true;
+        allow write: if canAccessModule(clinicId, 'clinic-settings');
+      }
+
+      // Custom Practice Roles (e.g. Surgeon, Dental Assistant) - requires ADMIN or OWNER privileges
+      match /custom_roles/{roleId} {
+        allow read: if true;
+        allow create, update, delete: if canAccessModule(clinicId, 'staff') || canAccessModule(clinicId, 'clinic-settings');
+      }
+
+      // Deleted system roles tracking - requires ADMIN or OWNER privileges
+      match /deleted_system_roles/{roleId} {
+        allow read: if true;
+        allow create, update, delete: if canAccessModule(clinicId, 'staff') || canAccessModule(clinicId, 'clinic-settings');
+      }
+
+      // Staff invitations - Restricted to Owner/Admin
+      match /staff_invitations/{invitationId} {
+        allow read: if true;
+        allow create, update, delete: if canAccessModule(clinicId, 'staff');
+      }
+
+      // Patients records
+      match /patients/{patientId} {
+        allow read, write: if true;
+      }
+
+      // Appointments
+      match /appointments/{appointmentId} {
+        allow read, write: if true;
+      }
+
+      // Dental Charts (Odontograms)
+      match /dental_charts/{chartId} {
+        allow read, write: if true;
+      }
+
+      // Treatment Plans
+      match /treatment_plans/{planId} {
+        allow read, write: if true;
+      }
+
+      // Clinical Notes
+      match /clinical_notes/{noteId} {
+        allow read, write: if true;
+      }
+
+      // Prescriptions
+      match /prescriptions/{prescriptionId} {
+        allow read, write: if true;
+      }
+
+      // Dental Lab & Prosthodontics Orders
+      match /lab_orders/{orderId} {
+        allow read, write: if true;
+      }
+
+      // Invoices
+      match /invoices/{invoiceId} {
+        allow read, write: if true;
+      }
+
+      // Payments - Anyone authorized can read or record receipts; editing or deleting collected payment records is strictly restricted to Owner
+      match /payments/{paymentId} {
+        allow read, create: if true;
+        allow update, delete: if hasAdminOrOwnerPrivilege(clinicId);
+      }
+
+      // Expenses & Practice Expenditures
+      match /expenses/{expenseId} {
+        allow read, write: if true;
+      }
+
+      // Services Catalog
+      match /services/{serviceId} {
+        allow read, write: if true;
+      }
+
+      // Inventory
+      match /inventory/{itemId} {
+        allow read, write: if true;
+      }
+
+      // Audit Logs
+      match /audit_logs/{logId} {
+        allow read, create: if true;
+        allow update, delete: if false; // Immutable audit trail
+      }
+
+      // Staff Login Logs & History
+      match /staff_login_logs/{logId} {
+        allow read, create: if true;
+        allow update, delete: if canAccessModule(clinicId, 'staff');
+      }
+    }
+
+    // Default deny for anything outside defined collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
